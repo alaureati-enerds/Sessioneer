@@ -28,5 +28,4 @@ This library is licensed under the MIT License. See the LICENSE file for more de
 
 ## Author
 
-Andrea Laureati
-eNerds srl
+Andrea Laureati, eNerds srl

@@ -17,7 +17,7 @@ use Sessioneer\Exceptions\KeyNotFoundException;
 class Sessioneer
 {
 
-    private static $expirationTime;
+    public static $expirationTime;
 
     /**
      * Starts the session and sets the expiration time.
@@ -94,6 +94,38 @@ class Sessioneer
         }
 
         return $_SESSION[$key];
+    }
+
+    /**
+     * Rimuove una chiave dall'array di sessione.
+     * 
+     * @param string $key La chiave da rimuovere.
+     * 
+     * @throws SessionExpiredException Se la sessione è scaduta.
+     * @throws KeyNotFoundException Se la chiave non esiste.
+     */
+    public static function remove($key)
+    {
+        if (self::isSessionExpired()) {
+            throw new SessionExpiredException();
+        }
+
+        if (!isset($_SESSION[$key])) {
+            throw new KeyNotFoundException("The key '{$key}' was not found.");
+        }
+
+        unset($_SESSION[$key]);
+        self::updateLastActivity();
+    }
+
+    /**
+     * Restituisce lo stato della sessione corrente.
+     * 
+     * @return string Lo stato della sessione.
+     */
+    public static function getSessionStatus()
+    {
+        return session_status();
     }
 
     /**
