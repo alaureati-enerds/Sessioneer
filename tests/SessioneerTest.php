@@ -15,6 +15,7 @@ class SessioneerTest extends TestCase
      */
     protected function setUp(): void
     {
+        error_reporting(E_ALL);
         if (session_status() === PHP_SESSION_ACTIVE) {
             session_destroy();
         }
@@ -87,6 +88,33 @@ class SessioneerTest extends TestCase
         Sessioneer::start();
 
         $this->assertArrayHasKey('LAST_ACTIVITY', $_SESSION);
+    }
+
+
+    /**
+     * Verifica che il metodo start() imposti correttamente i parametri del cookie.
+     *
+     * @return void
+     */
+    public function testStartSetsCookieParams()
+    {
+        $expiration = 3600;
+        $cookiePath = '/';
+        $cookieDomain = 'example.com';
+        $cookieSecure = true;
+        $cookieHttpOnly = false;
+        $cookieSameSite = 'Strict';
+
+        Sessioneer::start($expiration, $cookiePath, $cookieDomain, $cookieSecure, $cookieHttpOnly, $cookieSameSite);
+
+        $params = session_get_cookie_params();
+
+        $this->assertEquals($expiration, $params['lifetime']);
+        $this->assertEquals($cookiePath, $params['path']);
+        $this->assertEquals($cookieDomain, $params['domain']);
+        $this->assertTrue($params['secure']);
+        $this->assertFalse($params['httponly']);
+        $this->assertEquals($cookieSameSite, $params['samesite']);
     }
 
     /**
@@ -270,6 +298,17 @@ class SessioneerTest extends TestCase
         Sessioneer::remove('username');
     }
 
+    public function testSessionFixationPrevention()
+    {
+        $fixedSessionId = '123123';
+        session_id($fixedSessionId);
+        session_start();
+
+        Sessioneer::start();
+
+        $this->assertNotEquals($fixedSessionId, session_id(), 'L\'ID di sessione non è stato rigenerato dopo il login.');
+    }
+
     /**
      * Test per il metodo getSessionStatus: restituisce lo stato della sessione.
      */
@@ -282,5 +321,67 @@ class SessioneerTest extends TestCase
 
         Sessioneer::destroy();
         $this->assertEquals(PHP_SESSION_NONE, Sessioneer::getSessionStatus());
+    }
+
+    public function testRegenerateSessionId()
+    {
+        session_start();
+
+        $oldSessionId = session_id();
+
+        Sessioneer::regenerateSessionId();
+
+        $newSessionId = session_id();
+
+        $this->assertNotEquals($oldSessionId, $newSessionId, "The session ID should have been regenerated.");
+    }
+
+    public function testRegenerateSessionIdDoesNotAffectData()
+    {
+        session_start();
+
+        $_SESSION['test'] = 'value';
+
+        Sessioneer::regenerateSessionId();
+
+        $this->assertEquals('value', $_SESSION['test'], "Session data should persist after session ID regeneration.");
+    }
+
+    public function testSetCookieParamsDefaultValues()
+    {
+        // Chiama il metodo senza parametri, usando i valori di default
+        Sessioneer::setCookieParams();
+
+        // Recupera i parametri dei cookie di sessione
+        $params = session_get_cookie_params();
+
+        // Verifica i valori di default
+        $this->assertEquals(3600, $params['lifetime'], "Default lifetime should be 3600 seconds.");
+        $this->assertEquals('/', $params['path'], "Default path should be '/'");
+        $this->assertEquals('', $params['domain'], "Default domain should be '' (no specific domain).");
+        $this->assertFalse($params['secure'], "Default secure should be false.");
+        $this->assertTrue($params['httponly'], "Default httponly should be true.");
+        $this->assertEquals('Lax', $params['samesite'], "Default SameSite should be 'Lax'.");
+    }
+
+    public function testSetCookieParamsCustomValues()
+    {
+        $lifetime = 7200;
+        $path = '/myPath/';
+        $domain = 'example.com';
+        $secure = true;
+        $httponly = false;
+        $samesite = 'Strict';
+
+        Sessioneer::setCookieParams($lifetime, $path, $domain, $secure, $httponly, $samesite);
+
+        $params = session_get_cookie_params();
+
+        $this->assertEquals($lifetime, $params['lifetime'], "Lifetime should be $lifetime seconds.");
+        $this->assertEquals($path, $params['path'], "Path should be '$path'.");
+        $this->assertEquals($domain, $params['domain'], "Domain should be '$domain'.");
+        $this->assertTrue($params['secure'], "Secure should be true.");
+        $this->assertFalse($params['httponly'], "Httponly should be false.");
+        $this->assertEquals($samesite, $params['samesite'], "SameSite should be '$samesite'.");
     }
 }
