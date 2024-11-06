@@ -159,7 +159,7 @@ class Sessioneer
      *
      * @return bool True if the session has expired, false otherwise.
      */
-    private static function isSessionExpired()
+    public static function isSessionExpired()
     {
         if (empty($_SESSION['LAST_ACTIVITY'])) {
             return false;
